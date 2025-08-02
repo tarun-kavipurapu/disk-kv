@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"os"
 	"sync"
-	"time"
 )
 
 var FILE_PATH = "datafile.log"
 
-type KV map[string]Meta
+type KV map[string]*Meta
 
 var (
 	kvInstance KV
@@ -24,10 +23,10 @@ func GetKVInstance() KV {
 }
 
 type Meta struct {
-	TimeStamp   time.Time
+	TimeStamp   uint32
 	FileId      int
-	StartOffset int
-	Size        int
+	StartOffset int64
+	Size        int //size of the entire record buffer we are going to read
 }
 type DataFile struct {
 	FileID     int
@@ -60,16 +59,58 @@ func NewDataFile() *DataFile {
 }
 
 func (d *DataFile) put(key string, val []byte) {
-	record := NewRecord(d.FileID, key, val)
+	recordBytes, record := NewRecord(d.FileID, key, val)
 	//Insert record using writer
 	d.mutex.Lock()
-	n, err := d.writer.Write(record)
+	n, err := d.writer.Write(recordBytes)
 	if err != nil {
 		fmt.Println("error writing %v", err)
 	}
 	d.mutex.Unlock()
+	// so basically from metadata lets make a read of startoffset+size read into buffer
+	metaData := &Meta{
+		TimeStamp:   record.Header.Timestamp,
+		FileId:      d.FileID,
+		StartOffset: d.lastoffset,
+		Size:        n,
+	}
+	kv := GetKVInstance()
+	kv[key] = metaData
 	d.lastoffset = d.lastoffset + int64(n)
+
 	//get the metaData from the inserted record
 	//insert this metadata into Meta DS and insert to kv instance
 
+}
+
+func (f *DataFile) read(key string) []byte {
+	// get metadata first
+	kv := GetKVInstance()
+	meta := kv[key]
+	fmt.Println(meta.StartOffset)
+	startOffset := meta.StartOffset
+	size := meta.Size
+	buffer := make([]byte, size)
+	f.mutex.Lock()
+	defer f.mutex.Unlock()
+
+	_, err := f.reader.Seek(startOffset, 0) // 0 means relative to the start of the file
+	if err != nil {
+		fmt.Printf("Error seeking to offset %d: %v\n", startOffset, err)
+		return nil
+	}
+
+	_, err = f.reader.Read(buffer)
+	if err != nil {
+		fmt.Printf("Error reading data: %v\n", err)
+		return nil
+	}
+
+	record, err := DecodeRecord(buffer)
+	if err != nil {
+		fmt.Printf("Error decoding record: %v\n", err)
+		return nil
+	}
+
+	return record.value
 }

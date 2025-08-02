@@ -1,5 +1,7 @@
 package main
 
+import "fmt"
+
 /*
 kv functions:
 - get(key)return value
@@ -14,5 +16,7 @@ func main() {
 	// fmt.Println("This is a disk based kv ")
 	dataFile := NewDataFile()
 	dataFile.put("Tarun", []byte("Kavi"))
+	dataFile.put("dank", []byte("tarun"))
+	fmt.Println(string(dataFile.read("Tarun")))
 
 }
