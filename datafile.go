@@ -38,9 +38,8 @@ type DataFile struct {
 
 func NewDataFile() *DataFile {
 	datafile := &DataFile{
-		FileID:     HashString(FILE_PATH),
-		mutex:      sync.RWMutex{},
-		lastoffset: 0,
+		FileID: HashString(FILE_PATH),
+		mutex:  sync.RWMutex{},
 	}
 
 	writer, err := os.OpenFile(FILE_PATH, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
@@ -54,6 +53,9 @@ func NewDataFile() *DataFile {
 		panic(err)
 	}
 	datafile.reader = reader
+
+	fileInfo, err := datafile.writer.Stat()
+	datafile.lastoffset = fileInfo.Size()
 
 	return datafile
 }
@@ -111,6 +113,5 @@ func (f *DataFile) read(key string) []byte {
 		fmt.Printf("Error decoding record: %v\n", err)
 		return nil
 	}
-
 	return record.value
 }

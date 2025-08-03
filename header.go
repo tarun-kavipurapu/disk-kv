@@ -13,7 +13,7 @@ type Header struct {
 
 func (h *Header) encode(buf *bytes.Buffer) error {
 
-	//here i am able to directly write h structure because it is uint64
+	//here i am able to directly write h structure because it is uint32
 
 	return binary.Write(buf, binary.LittleEndian, h)
 }

@@ -17,6 +17,8 @@ func main() {
 	dataFile := NewDataFile()
 	dataFile.put("Tarun", []byte("Kavi"))
 	dataFile.put("dank", []byte("tarun"))
+	dataFile.put("Tarun", []byte("else"))
+
 	fmt.Println(string(dataFile.read("Tarun")))
 
 }
